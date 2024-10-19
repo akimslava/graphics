@@ -97,15 +97,15 @@ def draw_textured_cylinder(radius=0.8, height=2, segments=100):
         glVertex3f(x1, height / 2, z1)
     glEnd()
 
-    def draw_cylinder_base(height):
+    def draw_cylinder_base(cylinder_height):
         glBegin(GL_TRIANGLE_FAN)
         glTexCoord2f(0.5, 0.5)
-        glVertex3f(0.0, -height / 2, 0.0)
-        for i in range(segments + 1):
-            theta = i * angle_step
-            x, z = math.cos(theta) * radius, math.sin(theta) * radius
-            glTexCoord2f(0.5 + math.cos(theta) / 2, 0.5 + math.sin(theta) / 2)
-            glVertex3f(x, -height / 2, z)
+        glVertex3f(0.0, -cylinder_height / 2, 0.0)
+        for cylinder_i in range(segments + 1):
+            cylinder_theta = cylinder_i * angle_step
+            cylinder_x, cylinder_z = math.cos(cylinder_theta) * radius, math.sin(cylinder_theta) * radius
+            glTexCoord2f(0.5 + math.cos(cylinder_theta) / 2, 0.5 + math.sin(cylinder_theta) / 2)
+            glVertex3f(cylinder_x, -cylinder_height / 2, cylinder_z)
         glEnd()
 
     draw_cylinder_base(height)
@@ -193,19 +193,19 @@ def display():
     glFlush()
 
 
-def mouse_motion(w, x, y):
+def mouse_motion(_, mouse_x, mouse_y):
     global light_position
-    x *= 2
-    x -= 1000
-    light_position[0] = (x / 1000 - 1 / 2.0)
-    light_position[1] = (0.5 / 2.0 - y / 1000)
+    mouse_x *= 2
+    mouse_x -= 1000
+    light_position[0] = (mouse_x / 1000 - 1 / 2.0)
+    light_position[1] = (0.5 / 2.0 - mouse_y / 1000)
 
 
-def framebuffer_size_callback(window, width, height):
+def frame_buffer_size_callback(_, width, height):
     glViewport(0, 0, width, height)
 
 
-def keyboard(window, key, scancode, action, mods):
+def keyboard(window, key, _, action, __):
     global light_position, light_diffuse, light_ambient, light_specular
 
     if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
@@ -267,7 +267,7 @@ def init():
         glfw.terminate()
         raise Exception("GLFW window can not be created!")
     glfw.make_context_current(window)
-    glfw.set_framebuffer_size_callback(window, framebuffer_size_callback)
+    glfw.set_framebuffer_size_callback(window, frame_buffer_size_callback)
 
     load_texture("Grass_01.png")
 
