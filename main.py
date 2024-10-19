@@ -7,10 +7,8 @@ from OpenGL.GLUT import *
 
 dimensions_count = 3
 
-# Размеры
 cylinder_height = 2.0
 
-# Данные анимации
 animating = False
 object_movement_speed = 0.001
 animation_speed_multiplier = 1.0
@@ -30,7 +28,6 @@ cylinder_pos = [4, 0, 0]
 cylinder_target_pos = [8, 0, 0]
 
 
-# Параметры камеры
 camera_pos = [0.0, 0.0, 10.0]
 camera_front = [0.0, 0.0, -1.0]
 camera_up = [0.0, 1.0, 0.0]
@@ -110,7 +107,7 @@ def normalize(v):
     return [v[i] / length for i in range(dimensions_count)]
 
 
-def mouse_motion(x, y):
+def mouse_motion(mouse_x, mouse_y):
     global yaw, pitch, camera_front, first_mouse
 
     center_x = window_width // 2
@@ -121,8 +118,8 @@ def mouse_motion(x, y):
         first_mouse = False
         return
 
-    x_offset = x - center_x
-    y_offset = center_y - y
+    x_offset = mouse_x - center_x
+    y_offset = center_y - mouse_y
 
     sensitivity = 0.1
     x_offset *= sensitivity
@@ -146,15 +143,11 @@ def mouse_motion(x, y):
     glutWarpPointer(center_x, center_y)
 
 
-# pylint: disable-next=unused-argument
-def keyboard_down(key, x, y):
-    del x, y
+def keyboard_down(key, _, __):
     keys.add(key)
 
 
-# pylint: disable-next=unused-argument
-def keyboard_up(key, x, y):
-    if key in keys:
+def keyboard_up(key, _, __):
         keys.remove(key)
 
 
