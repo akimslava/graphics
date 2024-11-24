@@ -1,8 +1,11 @@
 from OpenGL.GL import *
 import numpy as np
-from shader import Shader  # Assuming Shader class is defined elsewhere
-from particle_storage import ParticleStorage
 
+from course.particles.cone_gen import MAX_LIFE
+from course.utils.shader import Shader  # Assuming Shader class is defined elsewhere
+from course.particles.particle_storage import ParticleStorage
+
+MIN_SIZE = 3
 
 class ParticleSystem:
     def __init__(self, shader: Shader, amount: int, gen):
@@ -13,8 +16,8 @@ class ParticleSystem:
 
         # Create particle vertex buffer (one-point)
         particle_quad = np.array([
-            0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
-            1.0, 0.0, 0.0, 230.0 / 255.0, 244.0 / 255.0, 184.0 / 255, 0.3
+            0.0, 0.0, 0.0, 128.0 / 255.0, 0.0, 128.0 / 255.0, 1.0,
+            # 1.0, 0.0, 0.0, 230.0 / 255.0, 244.0 / 255.0, 184.0 / 255, 0.3
         ], dtype=np.float32)
 
         self._VAO = glGenVertexArrays(1)
@@ -42,14 +45,15 @@ class ParticleSystem:
         glBlendFunc(GL_SRC_ALPHA, GL_ONE)
 
         for particle in self._particles.get_alive_particles():
-            self._shader_ptr.set_vec3("old_pos", particle.old_pos.pop())  # Assuming old_pos is a list or queue
+            # self._shader_ptr.set_vec3("old_pos", particle.old_pos.pop())  # Assuming old_pos is a list or queue
 
             self._shader_ptr.set_vec3("offset", particle.pos)
-            self._shader_ptr.set_float("alpha", min(particle.life / 4.0, 1.0))
+            self._shader_ptr.set_float("alpha", min(particle.life / MAX_LIFE, 1.0))
 
-            glEnable(GL_LINE_SMOOTH)
+            # glEnable(GL_LINE_SMOOTH)
+            glPointSize(MAX_LIFE + 1 - particle.life + MIN_SIZE)
             glBindVertexArray(self._VAO)
-            glDrawArrays(GL_LINES, 0, 2)
+            glDrawArrays(GL_POINTS, 0, 1)
             glBindVertexArray(0)
 
         # Reset to default blending mode
@@ -60,7 +64,7 @@ class ParticleSystem:
 
         # Обновляем все "живые" частицы
         for particle in self._particles.get_alive_particles():
-            particle.old_pos.appendleft(particle.pos)  # Сохраняем старую позицию
+            # particle.old_pos.appendleft(particle.pos)  # Сохраняем старую позицию
             particle.life -= dt  # Уменьшаем "жизнь" частицы
 
             # Применяем переданный functor для обновления состояния частицы

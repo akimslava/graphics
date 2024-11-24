@@ -1,6 +1,5 @@
 import OpenGL.GL as gl
 import glm
-import ctypes
 
 
 class Shader:

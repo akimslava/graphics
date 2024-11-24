@@ -1,23 +1,24 @@
-import math
-import random
-from OpenGL.GL import *
-import glm
 import glfw
-import numpy as np
+import glm
 
-from camera import Camera, Movement
-from shader import Shader
-from texture import load_texture
-from surface import Surface
-from particle_system import *
-from point_particle_generator import PointParticleGenerator
-from surface_attractor import SurfaceAttractor
+from course.utils.camera import Camera, Movement
+from course.model.cone import Cone
+from course.particles.cone_gen import ConeParticleGenerator
+from course.model.sphere import Sphere
+from course.particles.sphere_collider import SphereCollider
+from course.particles.particle_system import *
+from course.model.surface import Surface
+from course.utils.shader import Shader
+from course.utils.texture import load_texture
 
 # Конфигурация теней
 SHADOW_WIDTH, SHADOW_HEIGHT = 1024, 1024
 
-# Камера
+# Точки
+BIRTH_SPEED = 1
+POINTS_MAX_COUNT = 1000
 
+# Камера
 camera = Camera(glm.vec3(0.0, 1.0, 6.0))
 lastX, lastY = 800 / 2.0, 600 / 2.0
 firstMouse = True
@@ -26,8 +27,8 @@ lastFrame = 0.0
 
 # Модели
 surface = None
-surface2 = None
-cone_textureID = None
+cone = None
+sphere = None
 
 # Настройка света
 lightPos = glm.vec3(-5.0, 4.0, -2.0)  # Определяем начальную позицию света
@@ -70,7 +71,7 @@ def key_callback(window, key, scancode, action, mods):
         lightPos.z -= lightSpeed
 
 
-def scroll_callback(window, xoffset, yoffset):
+def scroll_callback(_, __, yoffset):
     camera.process_mouse_scroll(float(yoffset))
 
 
@@ -87,9 +88,9 @@ def cursor_position_callback(window, xpos, ypos):
 
 
 def render_scene(shader):
-    global textureID
+    global texture_grass_1, texture_grass_4
     glActiveTexture(GL_TEXTURE0)
-    glBindTexture(GL_TEXTURE_2D, textureID)
+    glBindTexture(GL_TEXTURE_2D, texture_grass_1)
     # Рендеринг пола
     shader.set_mat4("model", glm.mat4(1.0))
     shader.set_vec3("material.ambient", glm.vec3(0.6, 0.6, 0.6))
@@ -98,12 +99,17 @@ def render_scene(shader):
     shader.set_float("material.shininess", 128.0)
     surface.render()
 
-    shader.set_mat4("model", glm.translate(glm.mat4(1.0), glm.vec3(5.0, 5.0, 0.0)))
-    surface2.render()
+    glBindTexture(GL_TEXTURE_2D, texture_grass_4)
+
+    shader.set_mat4("model", glm.translate(glm.mat4(1.0), glm.vec3(0.0, 1.0, 0.0)))
+    cone.render()
+
+    shader.set_mat4("model", glm.translate(glm.mat4(1.0), glm.vec3(3.0, 2.0, 0.0)))
+    sphere.render()
 
 
 def main():
-    global deltaTime, lastFrame, surface, surface2, textureID
+    global deltaTime, lastFrame, surface, texture_grass_1, texture_grass_4, cone, sphere
 
     if not glfw.init():
         raise Exception("GLFW initialization failed")
@@ -122,10 +128,11 @@ def main():
     glfw.set_input_mode(window, glfw.CURSOR, glfw.CURSOR_DISABLED)
 
     # Загрузка текстур и шейдеров
-    textureID = load_texture("wood.png")
-    shader = Shader("shading.vert", "shading.frag")
-    simpleDepthShader = Shader("depth.vert", "depth.frag")
-    particle_shader = Shader("particle_shader.vert", "particle_shader.frag")
+    texture_grass_1 = load_texture("course/textures/Grass_01.png")
+    texture_grass_4 = load_texture("course/textures/Grass_04.png")
+    shader = Shader("course/shaders/shading.vert", "course/shaders/shading.frag")
+    simpleDepthShader = Shader("course/shaders/depth.vert", "course/shaders/depth.frag")
+    particle_shader = Shader("course/shaders/particle_shader.vert", "course/shaders/particle_shader.frag")
     depth_map_fbo = glGenFramebuffers(1)
     depth_map = glGenTextures(1)
 
@@ -163,14 +170,15 @@ def main():
 
     surface = Surface(25)
 
-    surface2 = Surface(5)
-    surface_attractor = SurfaceAttractor(glm.vec3(5.0, 5.0, 0.0), 5, -3.0)
+    cone = Cone(0.5, 1)
+    sphere = Sphere()
+    sphere_collider = SphereCollider(glm.vec3(3.0, 2.0, 0.0), 1)
 
-    point_particle_gen = PointParticleGenerator(glm.vec3(0.0, 1.0, 0.0), glm.normalize(glm.vec3(1.0, 1.0, 0.0)))
-    ps = ParticleSystem(particle_shader, 1000, point_particle_gen)
+    point_particle_gen = ConeParticleGenerator(glm.vec3(0.0, 1.0, 0.0), 1, 0.5)
+    ps = ParticleSystem(particle_shader, POINTS_MAX_COUNT, point_particle_gen)
 
     def update_particle(particle, dt):
-        surface_attractor(particle, dt)
+        sphere_collider(particle, dt)
         if particle.pos.y <= 0.0 or particle.pos.y >= 8.0:
             particle.kill()
 
@@ -197,8 +205,6 @@ def main():
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT)
         glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo)
         glClear(GL_DEPTH_BUFFER_BIT)
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, textureID)
 
         glCullFace(GL_FRONT)
         render_scene(simpleDepthShader)
@@ -221,7 +227,7 @@ def main():
         particle_shader.use()
         particle_shader.set_mat4("projection", projection)
         particle_shader.set_mat4("view", view)
-        ps.update(deltaTime, 2, update_particle)
+        ps.update(deltaTime, BIRTH_SPEED, update_particle)
         ps.render()
         print(ps.aliveCount())
 

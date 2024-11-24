@@ -1,5 +1,5 @@
 from typing import List
-from particle import Particle
+from course.particles.particle import Particle
 
 
 class ParticleStorage:
