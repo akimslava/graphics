@@ -4,19 +4,16 @@ import numpy as np
 
 
 def load_texture(filename: str) -> int:
-    # Генерация текстуры
     texture_id = gl.glGenTextures(1)
     gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
 
-    # Настройка параметров текстуры
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_REPEAT)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR_MIPMAP_LINEAR)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
 
-    # Загрузка изображения с использованием PIL
     image = Image.open(filename)
-    image = image.transpose(Image.FLIP_TOP_BOTTOM)  # Переворот изображения
+    image = image.transpose(Image.FLIP_TOP_BOTTOM)
     img_data = np.array(image)
 
     width, height = image.size
@@ -31,7 +28,6 @@ def load_texture(filename: str) -> int:
 
     print(f"Loaded image with width = {width}, height = {height}, and format = {format}")
 
-    # Создание текстуры
     gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, format, width, height, 0, format, gl.GL_UNSIGNED_BYTE, img_data)
     gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
 

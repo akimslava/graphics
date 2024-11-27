@@ -1,11 +1,12 @@
 from typing import List
+
 from course.particles.particle import Particle
 
 
 class ParticleStorage:
     def __init__(self, amount: int):
         self._particles: List[Particle] = [Particle() for _ in range(amount)]
-        self._death_particle_it = 0  # Указатель на первую "мертвую" частицу
+        self._death_particle_it = 0
         self._alive_particles = 0
 
     def alive_count(self) -> int:
@@ -26,14 +27,12 @@ class ParticleStorage:
         self._alive_particles += 1
 
     def clear_dead_particles(self):
-        # Очистка "мертвых" частиц
         i = 0
         while i < self._death_particle_it:
             if self._particles[i].is_dead():
-                # Перемещаем мертвую частицу в конец "живых"
                 self._death_particle_it -= 1
-                self._particles[i], self._particles[self._death_particle_it] = self._particles[self._death_particle_it], \
-                self._particles[i]
+                self._particles[i], self._particles[self._death_particle_it] =\
+                    self._particles[self._death_particle_it], self._particles[i]
                 self._alive_particles -= 1
             else:
                 i += 1

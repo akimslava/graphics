@@ -13,13 +13,3 @@ class Particle:
 
     def kill(self):
         self.life = 0.0
-
-
-class LifeComparator:
-    def __call__(self, p1, p2):
-        return p1.life < p2.life
-
-
-class DeadPredicate:
-    def __call__(self, p):
-        return p.is_dead()

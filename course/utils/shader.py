@@ -4,13 +4,11 @@ import glm
 
 class Shader:
     def __init__(self, vertex_source_path: str, fragment_source_path: str):
-        # Чтение исходников шейдеров
         with open(vertex_source_path, 'r') as file:
             vertex_source = file.read()
         with open(fragment_source_path, 'r') as file:
             fragment_source = file.read()
 
-        # Создание и компиляция шейдеров
         vertex_shader = gl.glCreateShader(gl.GL_VERTEX_SHADER)
         gl.glShaderSource(vertex_shader, vertex_source)
         gl.glCompileShader(vertex_shader)
@@ -21,14 +19,12 @@ class Shader:
         gl.glCompileShader(fragment_shader)
         self._check_compile_errors(fragment_shader, "FRAGMENT")
 
-        # Создание программы и линковка шейдеров
         self._program = gl.glCreateProgram()
         gl.glAttachShader(self._program, vertex_shader)
         gl.glAttachShader(self._program, fragment_shader)
         gl.glLinkProgram(self._program)
         self._check_compile_errors(self._program, "PROGRAM")
 
-        # Удаление шейдеров после их использования
         gl.glDeleteShader(vertex_shader)
         gl.glDeleteShader(fragment_shader)
 
@@ -71,7 +67,8 @@ class Shader:
     def set_mat4(self, name: str, mat):
         gl.glUniformMatrix4fv(gl.glGetUniformLocation(self._program, name), 1, gl.GL_FALSE, glm.value_ptr(mat))
 
-    def _check_compile_errors(self, shader, shader_type):
+    @staticmethod
+    def _check_compile_errors(shader, shader_type):
         if shader_type != "PROGRAM":
             success = gl.glGetShaderiv(shader, gl.GL_COMPILE_STATUS)
             if not success:

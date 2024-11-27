@@ -1,76 +1,69 @@
-from OpenGL.GL import *
 from math import pi, sin, cos
+
 import numpy as np
+from OpenGL.GL import *
 
 
 class Sphere:
     def __init__(self, radius=1.0):
-        stackCount = 64
-        sectorCount = 64
+        stack_count = 64
+        sector_count = 64
 
         vertices = []
-        indicesVector = []
+        indices_vector = []
 
-        lengthInv = 1.0 / radius
+        length_inv = 1.0 / radius
 
-        sectorStep = 2 * pi / sectorCount
-        stackStep = pi / stackCount
+        sector_step = 2 * pi / sector_count
+        stack_step = pi / stack_count
 
-        # Генерация вершин
-        for i in range(stackCount + 1):
-            stackAngle = pi / 2 - i * stackStep  # от pi/2 до -pi/2
-            xy = radius * cos(stackAngle)  # r * cos(u)
-            z = radius * sin(stackAngle)  # r * sin(u)
+        for i in range(stack_count + 1):
+            stack_angle = pi / 2 - i * stack_step
+            xy = radius * cos(stack_angle)
+            z = radius * sin(stack_angle)
 
-            for j in range(sectorCount + 1):
-                sectorAngle = j * sectorStep  # от 0 до 2pi
+            for j in range(sector_count + 1):
+                sector_angle = j * sector_step
 
-                # Позиции вершин (x, y, z)
-                x = xy * cos(sectorAngle)  # r * cos(u) * cos(v)
-                y = xy * sin(sectorAngle)  # r * cos(u) * sin(v)
+                x = xy * cos(sector_angle)
+                y = xy * sin(sector_angle)
 
-                # Нормали (nx, ny, nz)
-                nx = x * lengthInv
-                ny = y * lengthInv
-                nz = z * lengthInv
+                nx = x * length_inv
+                ny = y * length_inv
+                nz = z * length_inv
 
-                # Текстурные координаты (s, t)
-                s = j / sectorCount
-                t = i / stackCount
+                s = j / sector_count
+                t = i / stack_count
 
                 vertices.extend([x, y, z, nx, ny, nz, s, t])
 
-        # Генерация индексов
-        for i in range(stackCount):
-            k1 = i * (sectorCount + 1)
-            k2 = k1 + sectorCount + 1
+        for i in range(stack_count):
+            k1 = i * (sector_count + 1)
+            k2 = k1 + sector_count + 1
 
-            for j in range(sectorCount):
+            for j in range(sector_count):
                 if i != 0:
-                    indicesVector.extend([k1, k2, k1 + 1])
+                    indices_vector.extend([k1, k2, k1 + 1])
 
-                if i != (stackCount - 1):
-                    indicesVector.extend([k1 + 1, k2, k2 + 1])
+                if i != (stack_count - 1):
+                    indices_vector.extend([k1 + 1, k2, k2 + 1])
 
                 k1 += 1
                 k2 += 1
 
         self._vertices_count = len(vertices) // 8
-        self._ind_count = len(indicesVector)
+        self._ind_count = len(indices_vector)
 
         vertices = np.array(vertices, dtype=np.float32)
-        indicesVector = np.array(indicesVector, dtype=np.uint32)
+        indices_vector = np.array(indices_vector, dtype=np.uint32)
 
-        # Генерация VAO, VBO, IBO
         self.VAO = glGenVertexArrays(1)
         self.VBO = glGenBuffers(1)
         self.IBO = glGenBuffers(1)
 
-        # Привязка VBO
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
         glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
 
-        # Привязка VAO
         glBindVertexArray(self.VAO)
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * vertices.itemsize, ctypes.c_void_p(0))
@@ -81,11 +74,9 @@ class Sphere:
         glEnableVertexAttribArray(2)
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * vertices.itemsize, ctypes.c_void_p(6 * vertices.itemsize))
 
-        # Привязка IBO
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.IBO)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesVector.nbytes, indicesVector, GL_STATIC_DRAW)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_vector.nbytes, indices_vector, GL_STATIC_DRAW)
 
-        # Отвязка VAO и VBO
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 

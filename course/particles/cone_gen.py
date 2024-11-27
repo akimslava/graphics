@@ -13,7 +13,6 @@ class ConeParticleGenerator:
 
     @classmethod
     def from_cone(cls, cone):
-        """Alternative constructor using a cone object."""
         return cls(cone.model_view().get_pos(), cone.get_height(), cone.get_radius())
 
     def __call__(self):
@@ -29,12 +28,11 @@ class ConeParticleGenerator:
         normal_y = self._radius / self._height
         normal = np.array([normal_x, normal_y, normal_z])
 
-        # Normalize the velocity vector
         normalized_velocity = normal / np.linalg.norm(normal)
 
         return Particle(
-            pos=self._center_pos + glm.vec3(x, y, z),  # Position
-            vel=glm.vec3(*normalized_velocity),                      # Velocity
+            pos=self._center_pos + glm.vec3(x, y, z),
+            vel=glm.vec3(*normalized_velocity),
             color=[1.0, 0.0, 0.0, 1.0],
             life=MAX_LIFE
         )
