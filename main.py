@@ -2,10 +2,10 @@ import glfw
 import glm
 from OpenGL.GL import *
 
-from model.cone import Cone
-from model.cylinder import Cylinder
+from model.cube import Cube
+from model.sphere import Sphere
 from model.surface import Surface
-from model.teapot import Teapot
+from model.torus import Torus
 from utils.camera import Camera, Movement
 from utils.shader import Shader
 from utils.texture import load_texture
@@ -19,9 +19,9 @@ deltaTime = 0.0
 lastFrame = 0.0
 
 surface: Surface
-cylinder: Cylinder
-teapot: Teapot
-cone: Cone
+cube: Cube
+sphere: Sphere
+torus: Torus
 
 textureID: int
 cylinder_textureID: int
@@ -88,14 +88,15 @@ def render_scene(shader):
     shader.set_float("material.shininess", 128.0)
     surface.render()
 
+    # TODO("Установка текстуры для объектов далее")
     glBindTexture(GL_TEXTURE_2D, cylinder_textureID)
-    model = glm.mat4(1.0)
+    model = glm.translate(glm.mat4(1.0), glm.vec3(0.0, 0.5, 0.0))
     shader.set_mat4("model", model)
     shader.set_vec3("material.ambient", glm.vec3(0.6, 0.6, 0.6))
     shader.set_vec3("material.diffuse", glm.vec3(0.6, 0.6, 0.6))
     shader.set_vec3("material.specular", glm.vec3(0.5, 0.5, 0.5))
     shader.set_float("material.shininess", 64.0)
-    cylinder.render()
+    cube.render()
 
     model = glm.translate(glm.mat4(1.0), glm.vec3(3.0, 1.0, 0.0))
     model = glm.scale(model, glm.vec3(0.1))
@@ -104,19 +105,20 @@ def render_scene(shader):
     shader.set_vec3("material.diffuse", glm.vec3(0.7, 0.7, 0.7))
     shader.set_vec3("material.specular", glm.vec3(1.0, 1.0, 1.0))
     shader.set_float("material.shininess", 128.0)
-    teapot.render()
+    sphere.render()
 
-    model = glm.translate(glm.mat4(1.0), glm.vec3(-3.0, 0.0, 0.0))
+    model = glm.translate(glm.mat4(1.0), glm.vec3(-3.0, 1.0, 0.0))
+    model = glm.rotate(model, glm.radians(90), glm.vec3(1.0, 0.0, 0.0))
     shader.set_mat4("model", model)
     shader.set_vec3("material.ambient", glm.vec3(0.3, 0.3, 0.3))
     shader.set_vec3("material.diffuse", glm.vec3(0.8, 0.8, 0.8))
     shader.set_vec3("material.specular", glm.vec3(0.0, 0.0, 0.0))
     shader.set_float("material.shininess", 1.0)
-    cone.render()
+    torus.render()
 
 
 def main():
-    global deltaTime, lastFrame, surface, cylinder, teapot, cone, textureID, cylinder_textureID
+    global deltaTime, lastFrame, surface, cube, sphere, torus, textureID, cylinder_textureID
 
     if not glfw.init():
         raise Exception("GLFW initialization failed")
@@ -134,6 +136,7 @@ def main():
     glfw.set_cursor_pos_callback(window, cursor_position_callback)
     glfw.set_input_mode(window, glfw.CURSOR, glfw.CURSOR_DISABLED)
 
+    # TODO("Загрузка png")
     textureID = load_texture("textures/Grass_04.png")
     cylinder_textureID = load_texture("textures/Grass_01.png")
     shader = Shader("shaders/shading.vert", "shaders/shading.frag")
@@ -173,9 +176,9 @@ def main():
     shader.set_float("material.shininess", 64.0)
 
     surface = Surface()
-    cylinder = Cylinder(1.0, 1.5)
-    teapot = Teapot("obj/teapot.obj")
-    cone = Cone(1.0, 1.5)
+    cube = Cube()
+    sphere = Sphere(10.0)
+    torus = Torus(0.5, 1.0)
 
     while not glfw.window_should_close(window):
         current_frame = glfw.get_time()
