@@ -1,9 +1,9 @@
 import numpy as np
 from OpenGL.GL import *
 
-from course.particles.cone_gen import MAX_LIFE
-from course.particles.particle_storage import ParticleStorage
-from course.utils.shader import Shader
+from particles.cone_gen import MAX_LIFE
+from particles.particle_storage import ParticleStorage
+from utils.shader import Shader
 
 MIN_SIZE = 3
 

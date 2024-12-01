@@ -1,31 +1,40 @@
 import glfw
 import glm
-from OpenGL.GL import *
 
-from model.cone import Cone
-from model.cylinder import Cylinder
-from model.surface import Surface
-from model.teapot import Teapot
 from utils.camera import Camera, Movement
+from model.cone import Cone
+from particles.cone_gen import ConeParticleGenerator
+from model.sphere import Sphere
+from particles.sphere_collider import SphereCollider
+from particles.particle_system import *
+from model.surface import Surface
 from utils.shader import Shader
 from utils.texture import load_texture
 
+# Конфигурация теней
 SHADOW_WIDTH, SHADOW_HEIGHT = 1024, 1024
 
+# Точки
+BIRTH_SPEED = 4
+POINTS_MAX_COUNT = 2000
+
+# Камера
 camera = Camera(glm.vec3(0.0, 1.0, 6.0))
 lastX, lastY = 800 / 2.0, 600 / 2.0
 firstMouse = True
 deltaTime = 0.0
 lastFrame = 0.0
 
-surface: Surface
-cylinder: Cylinder
-teapot: Teapot
-cone: Cone
+# Модели
+surface: Surface|None = None
+cone: Cone|None = None
+sphere: Sphere|None = None
 
-textureID: int
-cylinder_textureID: int
+# Текстуры
+texture_grass_1 = None
+texture_grass_4 = None
 
+# Настройка света
 lightPos = glm.vec3(-5.0, 4.0, -2.0)
 lightSpeed = 0.5
 
@@ -47,6 +56,10 @@ def key_callback(window, key, _, action, __):
         camera.process_keyboard(Movement.LEFT, deltaTime)
     if key == glfw.KEY_D:
         camera.process_keyboard(Movement.RIGHT, deltaTime)
+    if key == glfw.KEY_SPACE:
+        camera.process_keyboard(Movement.UP, deltaTime)
+    if key == glfw.KEY_LEFT_CONTROL:
+        camera.process_keyboard(Movement.DOWN, deltaTime)
 
     if key == glfw.KEY_UP and action != glfw.RELEASE:
         lightPos.y += lightSpeed
@@ -62,66 +75,50 @@ def key_callback(window, key, _, action, __):
         lightPos.z -= lightSpeed
 
 
-def scroll_callback(_, __, y_offset):
-    camera.process_mouse_scroll(float(y_offset))
+def scroll_callback(_, __, yoffset):
+    camera.process_mouse_scroll(float(yoffset))
 
 
-def cursor_position_callback(_, xpos, y_pos):
+def cursor_position_callback(window, xpos, ypos):
     global firstMouse, lastX, lastY
+    if glfw.get_mouse_button(window, glfw.MOUSE_BUTTON_LEFT) != glfw.PRESS:
+        return
     if firstMouse:
-        lastX, lastY = xpos, y_pos
+        lastX, lastY = xpos, ypos
         firstMouse = False
-    x_offset, y_offset = xpos - lastX, lastY - y_pos
-    lastX, lastY = xpos, y_pos
-    camera.process_mouse_movement(float(x_offset), float(y_offset))
+    xoffset, yoffset = xpos - lastX, lastY - ypos
+    lastX, lastY = xpos, ypos
+    camera.process_mouse_movement(float(xoffset), float(yoffset))
 
 
 def render_scene(shader):
+    global texture_grass_1, texture_grass_4
     glActiveTexture(GL_TEXTURE0)
-    glBindTexture(GL_TEXTURE_2D, textureID)
+    glBindTexture(GL_TEXTURE_2D, texture_grass_1)
 
-    model = glm.mat4(1.0)
-    shader.set_mat4("model", model)
+    shader.set_mat4("model", glm.mat4(1.0))
     shader.set_vec3("material.ambient", glm.vec3(0.6, 0.6, 0.6))
     shader.set_vec3("material.diffuse", glm.vec3(0.6, 0.6, 0.6))
     shader.set_vec3("material.specular", glm.vec3(0.5, 0.5, 0.5))
     shader.set_float("material.shininess", 128.0)
     surface.render()
 
-    glBindTexture(GL_TEXTURE_2D, cylinder_textureID)
-    model = glm.mat4(1.0)
-    shader.set_mat4("model", model)
-    shader.set_vec3("material.ambient", glm.vec3(0.6, 0.6, 0.6))
-    shader.set_vec3("material.diffuse", glm.vec3(0.6, 0.6, 0.6))
-    shader.set_vec3("material.specular", glm.vec3(0.5, 0.5, 0.5))
-    shader.set_float("material.shininess", 64.0)
-    cylinder.render()
+    glBindTexture(GL_TEXTURE_2D, texture_grass_4)
 
-    model = glm.translate(glm.mat4(1.0), glm.vec3(3.0, 1.0, 0.0))
-    model = glm.scale(model, glm.vec3(0.1))
-    shader.set_mat4("model", model)
-    shader.set_vec3("material.ambient", glm.vec3(0.5, 0.5, 0.5))
-    shader.set_vec3("material.diffuse", glm.vec3(0.7, 0.7, 0.7))
-    shader.set_vec3("material.specular", glm.vec3(1.0, 1.0, 1.0))
-    shader.set_float("material.shininess", 128.0)
-    teapot.render()
-
-    model = glm.translate(glm.mat4(1.0), glm.vec3(-3.0, 0.0, 0.0))
-    shader.set_mat4("model", model)
-    shader.set_vec3("material.ambient", glm.vec3(0.3, 0.3, 0.3))
-    shader.set_vec3("material.diffuse", glm.vec3(0.8, 0.8, 0.8))
-    shader.set_vec3("material.specular", glm.vec3(0.0, 0.0, 0.0))
-    shader.set_float("material.shininess", 1.0)
+    shader.set_mat4("model", glm.translate(glm.mat4(1.0), glm.vec3(0.0, 1.0, 0.0)))
     cone.render()
+
+    shader.set_mat4("model", glm.translate(glm.mat4(1.0), glm.vec3(3.0, 2.0, 0.0)))
+    sphere.render()
 
 
 def main():
-    global deltaTime, lastFrame, surface, cylinder, teapot, cone, textureID, cylinder_textureID
+    global deltaTime, lastFrame, surface, texture_grass_1, texture_grass_4, cone, sphere
 
     if not glfw.init():
         raise Exception("GLFW initialization failed")
 
-    window = glfw.create_window(1600, 1440, "Lab1", None, None)
+    window = glfw.create_window(1600, 900, "Lab1", None, None)
     if not window:
         glfw.terminate()
         raise Exception("Failed to create GLFW window")
@@ -134,10 +131,11 @@ def main():
     glfw.set_cursor_pos_callback(window, cursor_position_callback)
     glfw.set_input_mode(window, glfw.CURSOR, glfw.CURSOR_DISABLED)
 
-    textureID = load_texture("textures/Grass_04.png")
-    cylinder_textureID = load_texture("textures/Grass_01.png")
+    texture_grass_1 = load_texture("textures/Grass_01.png")
+    texture_grass_4 = load_texture("textures/Grass_04.png")
     shader = Shader("shaders/shading.vert", "shaders/shading.frag")
     simple_depth_shader = Shader("shaders/depth.vert", "shaders/depth.frag")
+    particle_shader = Shader("shaders/particle_shader.vert", "shaders/particle_shader.frag")
     depth_map_fbo = glGenFramebuffers(1)
     depth_map = glGenTextures(1)
 
@@ -161,6 +159,7 @@ def main():
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
     glEnable(GL_DEPTH_TEST)
+    glEnable(GL_BLEND)
 
     shader.use()
     shader.set_int("diffuseTexture", 0)
@@ -172,10 +171,19 @@ def main():
     shader.set_vec3("material.specular", glm.vec3(0.5, 0.5, 0.5))
     shader.set_float("material.shininess", 64.0)
 
-    surface = Surface()
-    cylinder = Cylinder(1.0, 1.5)
-    teapot = Teapot("obj/teapot.obj")
-    cone = Cone(1.0, 1.5)
+    surface = Surface(25)
+
+    cone = Cone(0.5, 1)
+    sphere = Sphere()
+    sphere_collider = SphereCollider(glm.vec3(3.0, 2.0, 0.0), 1)
+
+    point_particle_gen = ConeParticleGenerator(glm.vec3(0.0, 1.0, 0.0), 1, 0.5)
+    ps = ParticleSystem(particle_shader, POINTS_MAX_COUNT, point_particle_gen)
+
+    def update_particle(particle, dt):
+        sphere_collider(particle, dt)
+        if particle.pos.y <= 0.0 or particle.pos.y >= 8.0:
+            particle.kill()
 
     while not glfw.window_should_close(window):
         current_frame = glfw.get_time()
@@ -189,6 +197,7 @@ def main():
         light_view = glm.lookAt(lightPos, glm.vec3(0.0), glm.vec3(0.0, 1.0, 0.0))
         light_space_matrix = light_projection * light_view
 
+        shader.use()
         shader.set_vec3("lightPos", lightPos)
         shader.set_mat4("lightSpaceMatrix", light_space_matrix)
 
@@ -198,8 +207,6 @@ def main():
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT)
         glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo)
         glClear(GL_DEPTH_BUFFER_BIT)
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, textureID)
 
         glCullFace(GL_FRONT)
         render_scene(simple_depth_shader)
@@ -209,7 +216,7 @@ def main():
         setup_viewport(window)
 
         shader.use()
-        projection = glm.perspective(glm.radians(camera.Zoom), 800 / 600, 0.1, 100.0)
+        projection = glm.perspective(glm.radians(camera.Zoom), 1600 / 900, 0.1, 100.0)
         view = camera.get_view_matrix()
         shader.set_mat4("projection", projection)
         shader.set_mat4("view", view)
@@ -219,6 +226,14 @@ def main():
 
         render_scene(shader)
 
+        particle_shader.use()
+        particle_shader.set_mat4("projection", projection)
+        particle_shader.set_mat4("view", view)
+        ps.update(deltaTime, BIRTH_SPEED, update_particle)
+        ps.render()
+        print(ps.alive_count())
+
+        glFlush()
         glfw.swap_buffers(window)
         glfw.poll_events()
 

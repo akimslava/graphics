@@ -1,7 +1,7 @@
 import glm
 import numpy as np
 
-from course.particles.particle import Particle
+from particles.particle import Particle
 
 MAX_LIFE = 7.0
 
