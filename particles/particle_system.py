@@ -1,11 +1,11 @@
 import numpy as np
 from OpenGL.GL import *
 
-from particles.cone_gen import MAX_LIFE
+from particles.plane_gen import MAX_LIFE
 from particles.particle_storage import ParticleStorage
 from utils.shader import Shader
 
-MIN_SIZE = 3
+MIN_SIZE = 7
 
 class ParticleSystem:
     def __init__(self, shader: Shader, amount: int, gen):
@@ -14,8 +14,9 @@ class ParticleSystem:
         self._shader_ptr = shader
         self._gen = gen
 
+        # TODO("цвет частиц (3-5 аргументы RGB)")
         particle_quad = np.array([
-            0.0, 0.0, 0.0, 128.0 / 255.0, 0.0, 128.0 / 255.0, 1.0,
+            0.0, 0.0, 0.0, 255.0 / 255.0, 251.0 / 255.0, 0.0 / 255.0, 1.0,
         ], dtype=np.float32)
 
         self._VAO = glGenVertexArrays(1)
@@ -40,9 +41,11 @@ class ParticleSystem:
         for particle in self._particles.get_alive_particles():
 
             self._shader_ptr.set_vec3("offset", particle.pos)
+            # TODO("прозрачность")
             self._shader_ptr.set_float("alpha", min(particle.life / MAX_LIFE, 1.0))
 
-            glPointSize(MAX_LIFE + 1 - particle.life + MIN_SIZE)
+            # TODO("размер частицы")
+            glPointSize(MIN_SIZE)
             glBindVertexArray(self._VAO)
             glDrawArrays(GL_POINTS, 0, 1)
             glBindVertexArray(0)

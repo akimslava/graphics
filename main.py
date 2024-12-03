@@ -1,13 +1,12 @@
 import glfw
 import glm
 
-from utils.camera import Camera, Movement
-from model.cone import Cone
-from particles.cone_gen import ConeParticleGenerator
-from model.sphere import Sphere
-from particles.sphere_collider import SphereCollider
-from particles.particle_system import *
+from model.cube import Cube
 from model.surface import Surface
+from particles.cube_collider import CubeCollider
+from particles.particle_system import *
+from particles.plane_gen import PlaneParticleGenerator
+from utils.camera import Camera, Movement
 from utils.shader import Shader
 from utils.texture import load_texture
 
@@ -27,8 +26,8 @@ lastFrame = 0.0
 
 # Модели
 surface: Surface|None = None
-cone: Cone|None = None
-sphere: Sphere|None = None
+cube: Cube | None = None
+plane: Surface | None = None
 
 # Текстуры
 texture_grass_1 = None
@@ -38,6 +37,12 @@ texture_grass_4 = None
 lightPos = glm.vec3(-5.0, 4.0, -2.0)
 lightSpeed = 0.5
 
+# TODO("поворот эмиттера")
+def get_rotation_matrix(mat4):
+    return glm.rotate(mat4, glm.radians(45), glm.vec3(0.0, 0.0, -1.0))
+
+# TODO("положение куба")
+cube_pos = glm.vec3(3.0, 3.5, 0.0)
 
 def setup_viewport(window):
     width, height = glfw.get_framebuffer_size(window)
@@ -94,6 +99,7 @@ def cursor_position_callback(window, xpos, ypos):
 def render_scene(shader):
     global texture_grass_1, texture_grass_4
     glActiveTexture(GL_TEXTURE0)
+    # TODO("текстура для поверхности")
     glBindTexture(GL_TEXTURE_2D, texture_grass_1)
 
     shader.set_mat4("model", glm.mat4(1.0))
@@ -103,17 +109,22 @@ def render_scene(shader):
     shader.set_float("material.shininess", 128.0)
     surface.render()
 
+    # TODO("текстура для фигур")
     glBindTexture(GL_TEXTURE_2D, texture_grass_4)
 
-    shader.set_mat4("model", glm.translate(glm.mat4(1.0), glm.vec3(0.0, 1.0, 0.0)))
-    cone.render()
+    # Создаем модельную матрицу для plane
+    model_matrix = glm.mat4(1.0)
+    model_matrix = glm.translate(model_matrix, glm.vec3(0.0, 1.0, 0.0))  # Смещение
+    model_matrix = get_rotation_matrix(model_matrix)
+    shader.set_mat4("model", model_matrix)
+    plane.render()
 
-    shader.set_mat4("model", glm.translate(glm.mat4(1.0), glm.vec3(3.0, 2.0, 0.0)))
-    sphere.render()
+    shader.set_mat4("model", glm.translate(glm.mat4(1.0), cube_pos))
+    cube.render()
 
 
 def main():
-    global deltaTime, lastFrame, surface, texture_grass_1, texture_grass_4, cone, sphere
+    global deltaTime, lastFrame, surface, texture_grass_1, texture_grass_4, cube, plane
 
     if not glfw.init():
         raise Exception("GLFW initialization failed")
@@ -173,15 +184,17 @@ def main():
 
     surface = Surface(25)
 
-    cone = Cone(0.5, 1)
-    sphere = Sphere()
-    sphere_collider = SphereCollider(glm.vec3(3.0, 2.0, 0.0), 1)
+    plane_size = 1
+    plane = Surface(plane_size)
+    cube = Cube(2)
+    cube_collider = CubeCollider(cube_pos, cube)
 
-    point_particle_gen = ConeParticleGenerator(glm.vec3(0.0, 1.0, 0.0), 1, 0.5)
+    rotation_matrix = get_rotation_matrix(glm.mat4(1.0))
+    point_particle_gen = PlaneParticleGenerator(glm.vec3(0.0, 1.0, 0.0), plane_size, plane_size, rotation_matrix)
     ps = ParticleSystem(particle_shader, POINTS_MAX_COUNT, point_particle_gen)
 
     def update_particle(particle, dt):
-        sphere_collider(particle, dt)
+        cube_collider(particle, dt)
         if particle.pos.y <= 0.0 or particle.pos.y >= 8.0:
             particle.kill()
 
